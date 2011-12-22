@@ -666,6 +666,7 @@ fi
 umount /g3mod_sd
 rmdir /g3mod_sd
 
+ln -s ../$INITbin /sbin/ueventd
 exec /$INITbin
 
 
