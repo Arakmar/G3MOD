@@ -588,8 +588,14 @@ androidfinger=`grep "ro.build.id" /system/build.prop|awk '{FS="="};{print $2}'`
 
 echo "System detected: $androidfinger" >> /g3mod.log
 if [ $bootmode = "2" ]; then
+	# Write FS in recovery.fstab. CWM5 needs them to work.
+	sed -i "s|SYSTEM_FS|$STL6_FS|" /misc/recovery.fstab
+	sed -i "s|DATA_FS|$STL7_FS|" /misc/recovery.fstab
+	sed -i "s|CACHE_FS|$STL8_FS|" /misc/recovery.fstab
+	sed -i "s|SDEXT_FS|$MMC_FS|" /misc/recovery.fstab
+
 	mv /init_froyo.rc /init.rc
-	INITbin=init_froyo
+	INITbin=init_ging
 	echo "System booted with Froyo recovery mode" >> /g3mod.log
 
 elif [ "$version" == "2.3" ]; then
