@@ -445,6 +445,17 @@ service console /system/bin/sh
 on property:ro.secure=0
     start console
 
+on property:persist.service.usb.setting=0
+    write /sys/devices/virtual/sec/switch/UsbMenuSel 0
+on property:persist.service.usb.setting=1
+    write /sys/devices/virtual/sec/switch/UsbMenuSel 1
+on property:persist.service.usb.setting=2
+    write /sys/devices/virtual/sec/switch/UsbMenuSel 2
+on property:persist.service.usb.setting=3
+    write /sys/devices/virtual/sec/switch/UsbMenuSel 3
+on property:persist.service.usb.setting=4
+    write /sys/devices/virtual/sec/switch/UsbMenuSel 4
+
 # adbd is controlled by the persist.service.adb.enable system property
 service adbd /sbin/adbd
     group shell log
@@ -606,6 +617,7 @@ service dumpstate /system/bin/dumpstate -s
 
 # to enable wifi
 service wpa_supplicant /system/bin/wpa_supplicant -Dwext -ieth0 -c/data/misc/wifi/wpa_supplicant.conf -dd
+  socket wpa_eth0 dgram 660 wifi wifi
   disabled
   oneshot
 
