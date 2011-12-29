@@ -113,6 +113,14 @@ loglevel 3
     chown system system /proc/net/xt_qtaguid/ctrl
     chmod 0644 /proc/net/xt_qtaguid/ctrl
 
+# Force the PDA mode. ICS handle very badly the usb_switch ...
+    chown radio system /sys/devices/virtual/sec/switch/UsbMenuSel
+    chown radio system /sys/devices/virtual/sec/switch//tethering
+    chown radio system /sys/devices/virtual/sec/switch/uart_sel
+    chown radio system /sys/devices/virtual/sec/switch/usb_sel
+    chown radio system /sys/devices/virtual/sec/switch/usb_state
+    write /sys/devices/virtual/sec/switch/usb_sel "PDA"
+
 on fs
 # mount mtd partitions
     # Mount /system rw first to give the filesystem a chance to save a checkpoint
