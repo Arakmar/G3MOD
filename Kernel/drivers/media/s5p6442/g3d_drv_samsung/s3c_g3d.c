@@ -1315,7 +1315,7 @@ int s3c_g3d_mmap(struct file* filp, struct vm_area_struct *vma)
 	unsigned long pageFrameNo, size, phys_addr;
 
 	size = vma->vm_end - vma->vm_start;
-
+	printk("s3c_g3d_mmap debut\n");
 	switch (flag) { 
 	case MEM_ALLOC :
 		phys_addr = s3c_g3d_reserve_chunk(filp, size);
@@ -1326,7 +1326,7 @@ int s3c_g3d_mmap(struct file* filp, struct vm_area_struct *vma)
 		}
 
 //		DEBUG("MMAP_ALLOC : virt addr = 0x%p, size = %d\n", virt_addr, size);
-//		printk("MMAP_ALLOC : virt addr = 0x%p, phys addr = 0x%p, size = %d\n", (void*)virt_addr, (void*)phys_addr, (int)(size));
+		printk("MEM_ALLOC : MMAP_ALLOC : phys addr = 0x%p, size = %d\n", (void*)phys_addr, (int)(size));
 		physical_address = (unsigned int)phys_addr;
 
 		pageFrameNo = __phys_to_pfn(phys_addr);
@@ -1334,7 +1334,7 @@ int s3c_g3d_mmap(struct file* filp, struct vm_area_struct *vma)
 		
 	case MEM_ALLOC_SHARE :
 //		DEBUG("MMAP_KMALLOC_SHARE : phys addr = 0x%p\n", physical_address);
-		
+		printk("s3c_g3d_mmap MEM_ALLOC_SHARE\n");
 		// page frame number of the address for the physical_address to be shared.
 		pageFrameNo = __phys_to_pfn(physical_address);
 		//DEBUG("MMAP_KMALLOC_SHARE: PFN = 0x%x\n", pageFrameNo);
@@ -1342,11 +1342,11 @@ int s3c_g3d_mmap(struct file* filp, struct vm_area_struct *vma)
 		break;
 		
 	case GET_FIMG_ADDR:
-	
-			//printk(" ############# going to get FIMG ADDR = vma->vm_end = %x  vma->vm_start = %x size = %x \n", vma->vm_end , vma->vm_start, size);
+			printk("s3c_g3d_mmap GET_FIMG_ADDR\n");
+			printk(" ############# going to get FIMG ADDR = vma->vm_end = %x  vma->vm_start = %x size = %x \n", vma->vm_end , vma->vm_start, size);
 			// page frame number of the address for a source G3D_SFR_SIZE to be stored at.
 			pageFrameNo = __phys_to_pfn(S3C_G3D_PA);
-                       //  printk("  S3C_G3D_PA = %x \n ", S3C_G3D_PA);	
+                         printk("  S3C_G3D_PA = %x \n ", S3C_G3D_PA);	
 
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
@@ -1359,21 +1359,21 @@ int s3c_g3d_mmap(struct file* filp, struct vm_area_struct *vma)
 		printk("s3c_g3d_mmap() : remap_pfn_range() failed !\n");
 		return -EINVAL;
 	}
-	//printk(" ############# after getting FIMG ADDR = vma->vm_end = %x  vma->vm_start = %x\n", vma->vm_end , vma->vm_start);
+	printk(" ############# after getting FIMG ADDR = vma->vm_end = %x  vma->vm_start = %x\n", vma->vm_end , vma->vm_start);
       return 0;
 			break;
 
 
 	default :
-		printk("here\n");
-
+		printk("s3c_g3d_mmap default\n");
 		// page frame number of the address for a source G2D_SFR_SIZE to be stored at.
 		pageFrameNo = __phys_to_pfn(S3C_G3D_PA);
-//		DEBUG("MMAP : vma->end = 0x%p, vma->start = 0x%p, size = %d\n", vma->vm_end, vma->vm_start, size);
-
+		vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+		printk("MMAP : vma->end = 0x%p, vma->start = 0x%p, size = %d tailleg3d : %d\n", vma->vm_end, vma->vm_start, size, S3C6410_SZ_G3D);
+		printk("  S3C_G3D_PA = %x \n ", S3C_G3D_PA);
 		if(size > S3C6410_SZ_G3D) {
 			printk("The size of G3D_SFR_SIZE mapping is too big!\n");
-			return -EINVAL;
+			//return -EINVAL;
 		}
 		break;
 	}
@@ -1389,7 +1389,8 @@ int s3c_g3d_mmap(struct file* filp, struct vm_area_struct *vma)
 		printk("s3c_g3d_mmap() : remap_pfn_range() failed !\n");
 		return -EINVAL;
 	}
-//printk(" ############# after getting FIMG ADDR = vma->vm_end = %x  vma->vm_start = %x\n", vma->vm_end , vma->vm_start);
+    printk(" ############# after getting vma->vm_end = %x  vma->vm_start = %x\n", vma->vm_end , vma->vm_start);
+	printk("s3c_g3d_mmap fin\n");
 	return 0;
 }
 
@@ -1472,6 +1473,8 @@ int s3c_g3d_probe(struct platform_device *pdev)
 		ret = -ENOENT;
 		goto err_ioremap;
 	}
+	
+	printk("res->start : %x res->end %x taille : %x tailleressource : %x %d\n", res->start, res->end, (res->end-res->start)+1, resource_size(res), resource_size(res));
 
 	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	if(res == NULL) {
@@ -1486,7 +1489,7 @@ int s3c_g3d_probe(struct platform_device *pdev)
 		printk(KERN_ERR PFX "failed to install irq (%d)\n", ret);
 		goto err_irq;
 	}
-
+	printk("IRQ res irq : %x\n", res->start);
 	init_waitqueue_head(&waitq);
 
 	ret = misc_register(&s3c_g3d_dev);
