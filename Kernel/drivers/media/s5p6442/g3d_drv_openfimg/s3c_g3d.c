@@ -118,20 +118,20 @@ static inline uint32_t g3d_read(struct g3d_drvdata *d, uint32_t r)
  */
 static inline void g3d_soft_reset(struct g3d_drvdata *data)
 {
-	printk("g3d_soft_reset debut\n");
+	//printk("g3d_soft_reset debut\n");
 	g3d_write(data, 1, G3D_FGGB_RESET_REG);
 	udelay(1);
 	g3d_write(data, 0, G3D_FGGB_RESET_REG);
-	printk("g3d_soft_reset fin\n");
+	//printk("g3d_soft_reset fin\n");
 }
 
 static inline int g3d_flush_pipeline(struct g3d_drvdata *data, unsigned int mask)
 {
 	int ret = 0;
-	printk("g3d_flush_pipeline debut\n");
+	//printk("g3d_flush_pipeline debut\n");
 	if((g3d_read(data, G3D_FGGB_PIPESTAT_REG) & mask) == 0)
 	{
-		printk("g3d_flush_pipeline fin1\n");
+		//printk("g3d_flush_pipeline fin1\n");
 		return 0;
 	}
 	
@@ -147,7 +147,7 @@ static inline int g3d_flush_pipeline(struct g3d_drvdata *data, unsigned int mask
 	if((g3d_read(data, G3D_FGGB_PIPESTAT_REG) & mask) == 0) {
 		/* Disable the interrupt */
 		g3d_write(data, 0, G3D_FGGB_INTMASK_REG);
-		printk("g3d_flush_pipeline fin2\n");
+		//printk("g3d_flush_pipeline fin2\n");
 		return 0;
 	}
 
@@ -161,34 +161,34 @@ static inline int g3d_flush_pipeline(struct g3d_drvdata *data, unsigned int mask
 
 	/* Disable the interrupt */
 	g3d_write(data, 0, G3D_FGGB_INTMASK_REG);
-	printk("g3d_flush_pipeline fin3 ret : %d\n", ret);
+	//printk("g3d_flush_pipeline fin3 ret : %d\n", ret);
 	return ret;
 }
 
 static inline void g3d_flush_caches(struct g3d_drvdata *data)
 {
 	int timeout = 1000000000;
-	printk("g3d_flush_caches debut\n");
+	//printk("g3d_flush_caches debut\n");
 	g3d_write(data, G3D_FGGB_FLUSH_MSK, G3D_FGGB_CACHECTL_REG);
 
 	do {
 		if(!g3d_read(data, G3D_FGGB_CACHECTL_REG))
 			break;
 	} while (--timeout);
-	printk("g3d_flush_caches fin\n");
+	//printk("g3d_flush_caches fin\n");
 }
 
 static inline void g3d_invalidate_caches(struct g3d_drvdata *data)
 {
 	int timeout = 1000000000;
-	printk("g3d_invalidate_caches debut\n");
+	//printk("g3d_invalidate_caches debut\n");
 	g3d_write(data, G3D_FGGB_INVAL_MSK, G3D_FGGB_CACHECTL_REG);
 
 	do {
 		if(!g3d_read(data, G3D_FGGB_CACHECTL_REG))
 			break;
 	} while (--timeout);
-	printk("g3d_invalidate_caches fin\n");
+	//printk("g3d_invalidate_caches fin\n");
 }
 
 /*
@@ -198,20 +198,20 @@ static irqreturn_t g3d_handle_irq(int irq, void *dev_id)
 {
 	struct g3d_drvdata *data = (struct g3d_drvdata *)dev_id;
 	uint32_t stat;
-	printk("g3d_handle_irq debut\n");
+	//printk("g3d_handle_irq debut\n");
 	g3d_write(data, 0, G3D_FGGB_INTPENDING_REG);
 	stat = g3d_read(data, G3D_FGGB_PIPESTAT_REG) & d_mask;
 
 	if(!stat)
 		complete(&d_completion);
-	printk("g3d_handle_irq fin\n");
+	//printk("g3d_handle_irq fin\n");
 	return IRQ_HANDLED;
 }
 
 static inline int ctx_has_lock(struct g3d_context *ctx)
 {
 	struct g3d_drvdata *data = ctx->data;
-	printk("ctx_has_lock\n");
+	//printk("ctx_has_lock\n");
 	return mutex_is_locked(&d_hw_lock) && (d_hw_owner == ctx);
 }
 
@@ -222,7 +222,7 @@ static int s3c_g3d_unlock(struct g3d_context *ctx)
 {
 	struct g3d_drvdata *data = ctx->data;
 	int ret = 0;
-	printk("s3c_g3d_unlock debut\n");
+	//printk("s3c_g3d_unlock debut\n");
 	mutex_lock(&d_lock);
 
 	if (unlikely(!ctx_has_lock(ctx))) {
@@ -236,7 +236,7 @@ static int s3c_g3d_unlock(struct g3d_context *ctx)
 	
 exit:
 	mutex_unlock(&d_lock);
-	printk("s3c_g3d_unlock fin\n");
+	//printk("s3c_g3d_unlock fin\n");
 	return ret;
 }
 
@@ -244,7 +244,7 @@ static int s3c_g3d_lock(struct g3d_context *ctx)
 {
 	struct g3d_drvdata *data = ctx->data;
 	int ret = 0;
-	printk("s3c_g3d_lock debut\n");
+	//printk("s3c_g3d_lock debut\n");
 	mutex_lock(&d_hw_lock);
 
 	//dev_dbg(data->dev, "hardware lock acquired by %p\n", ctx);
@@ -259,7 +259,7 @@ static int s3c_g3d_lock(struct g3d_context *ctx)
 
 	if (likely(d_hw_owner == ctx)) {
 		mutex_unlock(&d_lock);
-		printk("s3c_g3d_unlock fin1\n");
+		//printk("s3c_g3d_unlock fin1\n");
 		return 0;
 	}
 
@@ -274,7 +274,7 @@ static int s3c_g3d_lock(struct g3d_context *ctx)
 
 exit:
 	mutex_unlock(&d_lock);
-	printk("s3c_g3d_unlock fin2\n");
+	//printk("s3c_g3d_unlock fin2\n");
 	return ret;
 }
 
@@ -282,7 +282,7 @@ static int s3c_g3d_flush(struct g3d_context *ctx, u32 mask)
 {
 	struct g3d_drvdata *data = ctx->data;
 	int ret = 0;
-	printk("s3c_g3d_flush debut\n");
+	//printk("s3c_g3d_flush debut\n");
 	mutex_lock(&d_lock);
 
 	if (unlikely(!ctx_has_lock(ctx))) {
@@ -295,7 +295,7 @@ static int s3c_g3d_flush(struct g3d_context *ctx, u32 mask)
 
 exit:
 	mutex_unlock(&d_lock);
-	printk("s3c_g3d_flush fin\n");
+	//printk("s3c_g3d_flush fin\n");
 	return ret;
 }
 
@@ -304,7 +304,7 @@ static long s3c_g3d_ioctl(struct file *file,
 {
 	struct g3d_context *ctx = file->private_data;
 	int ret = 0;
-	printk("s3c_g3d_ioctl debut\n");
+	//printk("s3c_g3d_ioctl debut\n");
 	switch(cmd) {
 	/* Prepare and lock the hardware */
 	case S3C_G3D_LOCK:
@@ -324,7 +324,7 @@ static long s3c_g3d_ioctl(struct file *file,
 	default:
 		ret = -EINVAL;
 	}
-	printk("s3c_g3d_ioctl fin\n");
+	//printk("s3c_g3d_ioctl fin\n");
 	return ret;
 }
 
@@ -333,14 +333,14 @@ static int s3c_g3d_open(struct inode *inode, struct file *file)
 	struct miscdevice *mdev = file->private_data;
 	struct g3d_drvdata *data = container_of(mdev, struct g3d_drvdata, mdev);
 	struct g3d_context *ctx;
-	printk("s3c_g3d_open debut\n");
+	//printk("s3c_g3d_open debut\n");
 	ctx = kmalloc(sizeof(struct g3d_context), GFP_KERNEL);
 	ctx->data = data;
 
 	file->private_data = ctx;
 
 	//dev_dbg(data->dev, "device opened\n");
-	printk("s3c_g3d_open fin\n");
+	//printk("s3c_g3d_open fin\n");
 	return 0;
 }
 
@@ -349,7 +349,7 @@ static int s3c_g3d_release(struct inode *inode, struct file *file)
 	struct g3d_context *ctx = file->private_data;
 	struct g3d_drvdata *data = ctx->data;
 	int unlock = 0;
-	printk("s3c_g3d_release debut\n");
+	//printk("s3c_g3d_release debut\n");
 	/* Do this atomically */
 	mutex_lock(&d_lock);
 
@@ -363,7 +363,7 @@ static int s3c_g3d_release(struct inode *inode, struct file *file)
 
 	kfree(ctx);
 	//dev_dbg(data->dev, "device released\n");
-	printk("s3c_g3d_release fin\n");
+	//printk("s3c_g3d_release fin\n");
 	return 0;
 }
 
@@ -373,7 +373,7 @@ int s3c_g3d_mmap(struct file* file, struct vm_area_struct *vma)
 	struct g3d_drvdata *data = ctx->data;
 	unsigned long pfn;
 	size_t size = vma->vm_end - vma->vm_start;
-	printk("s3c_g3d_mmap debut\n");
+	//printk("s3c_g3d_mmap debut\n");
 	
 	pfn = __phys_to_pfn(0xD8000000);
 
@@ -395,7 +395,7 @@ int s3c_g3d_mmap(struct file* file, struct vm_area_struct *vma)
 	}
 
 	//dev_dbg(data->dev, "hardware mapped by %p\n", ctx);
-	printk("s3c_g3d_mmap fin\n");
+	//printk("s3c_g3d_mmap fin\n");
 	return 0;
 }
 
@@ -459,7 +459,7 @@ static int __init s3c_g3d_probe(struct platform_device *pdev)
 		ret = -ENOENT;
 		goto err_mem;
 	}
-	printk("res->start : %x res->end %x taille : %x tailleressource : %x\n", res->start, res->end, (res->end-res->start)+1, resource_size(res));
+	//printk("res->start : %x res->end %x taille : %x tailleressource : %x\n", res->start, res->end, (res->end-res->start)+1, resource_size(res));
 	//printk("data->mem->start : %x taille : %x\n", data->mem->start, resource_size(data->mem));
 
 	/* map the memory */
@@ -478,7 +478,7 @@ static int __init s3c_g3d_probe(struct platform_device *pdev)
 		ret = -ENOENT;
 		goto err_irq;
 	}
-	printk("IRQ  res irq : %x\n", res->start);
+	//printk("IRQ  res irq : %x\n", res->start);
 	/* request the IRQ */
 	ret = request_irq(res->start, g3d_handle_irq, 0, pdev->name, pdev);
 	if (ret) {
@@ -527,7 +527,7 @@ err_clock:
 static int __devexit s3c_g3d_remove(struct platform_device *pdev)
 {
 	struct g3d_drvdata *data = platform_get_drvdata(pdev);
-	printk("s3c_g3d_remove debut\n");
+	//printk("s3c_g3d_remove debut\n");
 	misc_deregister(&data->mdev);
 
 	free_irq(s3c_g3d_irq, data);
@@ -535,34 +535,34 @@ static int __devexit s3c_g3d_remove(struct platform_device *pdev)
 	release_resource(s3c_g3d_mem);
 	clk_put(g3d_clock);
 	kfree(data);
-	printk("s3c_g3d_remove fin\n");
+	//printk("s3c_g3d_remove fin\n");
 	return 0;
 }
 
 static int s3c_g3d_runtime_suspend(struct device *dev)
 {
 	struct g3d_drvdata *data = dev_get_drvdata(dev);
-	printk("s3c_g3d_runtime_suspend debut\n");
+	//printk("s3c_g3d_runtime_suspend debut\n");
 	clk_disable(g3d_clock);
 	d_hw_owner = NULL;
-	printk("s3c_g3d_runtime_suspend fin\n");
+	//printk("s3c_g3d_runtime_suspend fin\n");
 	return 0;
 }
 
 static int s3c_g3d_runtime_resume(struct device *dev)
 {
 	struct g3d_drvdata *data = dev_get_drvdata(dev);
-	printk("s3c_g3d_runtime_resume debut\n");
+//	printk("s3c_g3d_runtime_resume debut\n");
 	clk_enable(g3d_clock);
 	g3d_soft_reset(data);
-	printk("s3c_g3d_runtime_resume fin\n");
+	//printk("s3c_g3d_runtime_resume fin\n");
 	return 0;
 }
 
 static int s3c_g3d_suspend(struct device *dev)
 {
 	struct g3d_drvdata *data = dev_get_drvdata(dev);
-	printk("s3c_g3d_suspend debut\n");
+	//printk("s3c_g3d_suspend debut\n");
 	if (mutex_is_locked(&d_hw_lock)) {
 		dev_err(dev, "suspend requested with locked hardware (broken userspace?)\n");
 		return -EAGAIN;
@@ -570,17 +570,17 @@ static int s3c_g3d_suspend(struct device *dev)
 
 	clk_disable(g3d_clock);
 	d_hw_owner = NULL;
-	printk("s3c_g3d_suspend fin\n");
+	//printk("s3c_g3d_suspend fin\n");
 	return 0;
 }
 
 static int s3c_g3d_resume(struct device *dev)
 {
 	struct g3d_drvdata *data = dev_get_drvdata(dev);
-	printk("s3c_g3d_resume debut\n");
+	//printk("s3c_g3d_resume debut\n");
 	clk_enable(g3d_clock);
 	g3d_soft_reset(data);
-	printk("s3c_g3d_resume fin\n");
+	//printk("s3c_g3d_resume fin\n");
 	return 0;
 }
 
@@ -605,13 +605,13 @@ static struct platform_driver s3c_g3d_driver = {
  */
 int __init  s3c_g3d_init(void)
 {
-	printk("s3c_g3d_init debut\n");
+	//printk("s3c_g3d_init debut\n");
 	return platform_driver_probe(&s3c_g3d_driver, s3c_g3d_probe);
 }
 
 void __exit s3c_g3d_exit(void)
 {
-	printk("s3c_g3d_exit debut\n");
+	//printk("s3c_g3d_exit debut\n");
 	platform_driver_unregister(&s3c_g3d_driver);
 }
 
