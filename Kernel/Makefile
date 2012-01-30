@@ -183,7 +183,7 @@ export KBUILD_BUILDHOST := $(SUBARCH)
 ARCH		:= arm
 #CROSS_COMPILE   := /opt/ds5/bin/arm-none-linux-gnueabi-
 #CROSS_COMPILE   := /opt/toolchains/arm-2010q1/bin/arm-none-eabi-
-CROSS_COMPILE   := /home/yoann/Compilation/cm9/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-
+CROSS_COMPILE   := /media/SAVE_EXT4/Compilation/cm9/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
