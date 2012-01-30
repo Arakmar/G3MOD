@@ -1,7 +1,7 @@
 /*
  * Automatically generated C config: don't edit
  * Linux kernel version: 2.6.32.9
- * Thu Jan  5 22:15:12 2012
+ * Mon Jan 30 20:45:35 2012
  */
 #define AUTOCONF_INCLUDED
 #define CONFIG_MMC_SDHCI_S3C_DMA 1
@@ -167,6 +167,7 @@
 #define CONFIG_SCSI 1
 #define CONFIG_IP_SCTP 1
 #define CONFIG_TCP_CONG_CUBIC 1
+#define CONFIG_PERFORMANCE 1
 #define CONFIG_CGROUP_CPUACCT 1
 #define CONFIG_NTFS_FS 1
 #define CONFIG_NETFILTER_XT_TARGET_TPROXY 1
