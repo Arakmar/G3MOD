@@ -38,6 +38,8 @@ on init
   insmod /lib/modules/vibrator.ko
   insmod /lib/modules/Si4709_driver.ko
 
+  insmod /lib/modules/g3_g3d_module.ko
+
 # Backward compatibility
   symlink /system/etc /etc
   symlink /sys/kernel/debug /d

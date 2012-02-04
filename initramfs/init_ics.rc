@@ -48,6 +48,8 @@ loglevel 3
 # for fmradio
     insmod /lib/modules/Si4709_driver.ko
 
+    insmod /lib/modules/g3_g3d_module.ko
+
 # Create cgroup mount point for cpu accounting
     mkdir /acct
     mount cgroup none /acct cpuacct

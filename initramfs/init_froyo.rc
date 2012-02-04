@@ -58,6 +58,8 @@ loglevel 3
 # for fmradio
     insmod /lib/modules/Si4709_driver.ko
 
+    insmod /lib/modules/g3_g3d_module.ko
+
     mkdir /system
     mkdir /efs
     mkdir /data 0771 system system

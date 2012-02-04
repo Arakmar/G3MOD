@@ -126,6 +126,8 @@ int s5p6442_blkpower_state(unsigned int blkID)
 	return normal_cfg;
 }
 
+EXPORT_SYMBOL(s5p6442_blkpower_state);
+
 void s5p6442_idle_pm_gpiocfg(unsigned int blkID, unsigned int flag)
 {
 	u32 tmp;

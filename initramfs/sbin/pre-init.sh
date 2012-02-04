@@ -639,6 +639,15 @@ else
 	fi
 fi
 
+# Select correct G3D module
+if [ -f "/system/lib/egl/libGLES_fimg.so" ]; then
+	sed -i "s|g3_g3d_module|s3c_g3d_openfimg|" /init.rc
+	echo "G3D module : OpenFIMG" >> /g3mod.log
+else
+	sed -i "s|g3_g3d_module|s3c_g3d_samsung|" /init.rc
+	echo "G3D module : Samsung" >> /g3mod.log
+fi
+
 rm /init_*.rc
 rm /recovery_*.rc
 

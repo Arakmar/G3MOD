@@ -2483,6 +2483,7 @@
 0x00000000	mntput_no_expire	vmlinux	EXPORT_SYMBOL
 0x00000000	__get_free_pages	vmlinux	EXPORT_SYMBOL
 0x00000000	disallow_signal	vmlinux	EXPORT_SYMBOL
+0x00000000	s5p6442_blkpower_state	vmlinux	EXPORT_SYMBOL
 0x00000000	sysctl_ip_nonlocal_bind	vmlinux	EXPORT_SYMBOL
 0x00000000	utf8s_to_utf16s	vmlinux	EXPORT_SYMBOL
 0x00000000	proc_net_fops_create	vmlinux	EXPORT_SYMBOL_GPL
