@@ -374,8 +374,6 @@ then
 	rm /g3mod_sd/g3mod_data.tar
 fi
 
-#/sbin/mkfs.btrfs -d single /dev/block/mmcblk0p2
-
 if test -f $G3DIR/fs.tmpfs
 then
 	for DEVICE in mmcblk0p2 stl7 stl8 
@@ -413,19 +411,16 @@ sync
 cd /
 
 mount -t $STL6_FS -o nodev,noatime,nodiratime,ro /dev/block/stl6 /system
+mount -t $STL7_FS -o nodiratime,nosuid,nodev,rw$STL7_MNT /dev/block/stl7 /data
 
 # DATA2SD CODE
 
 if test -f $G3DIR/fs.data2sd; then
-	mkdir /intdata
-	mkdir /sdext
-	mount -t $STL7_FS -o nodiratime,nosuid,nodev,rw$STL7_MNT /dev/block/stl7 /intdata
-	mount -t $STL7_FS -o nodiratime,nosuid,nodev,rw$STL7_MNT /dev/block/stl7 /data
-	mount -t $MMC_FS -o rw,$MMC_MNT /dev/block/mmcblk0p2 /sdext
-	# nodiratime,nosuid,nodev,rw
 	DATA2SDmode=`cat $G3DIR/fs.data2sd`
+	mkdir /sdext
+	mount -t $MMC_FS -o rw,$MMC_MNT /dev/block/mmcblk0p2 /sdext
 	if [ "$DATA2SDmode" = "hybrid" ]
-	then	
+	then
 		echo "Data2SD Enabled - Hybrid Mode" >> /data2sd.log	
 		echo "Data2SD Enabled - Hybrid Mode" >> /g3mod.log
 		tr -d '\r' < /system/etc/data2sd.dirs > /data2sd.dirs
@@ -439,17 +434,13 @@ if test -f $G3DIR/fs.data2sd; then
 	sed -i "s|g3_mount_stl7|# Line not needed for Data2SD|" /init_ics.rc /init_ging.rc /init_froyo.rc /init.rc /recovery.rc
 else
 	echo "Data2SD Disabled" >> /g3mod.log
-	mount -t $STL7_FS -o nodiratime,nosuid,nodev,rw$STL7_MNT /dev/block/stl7 /data
-	STL7_MNT=`echo ${STL7_MNT} | sed 's/\,/ /g'`
 	sed -i "s|g3_mount_stl7|# Already mounted in the pre-init.sh script|" /init_ics.rc /init_ging.rc /init_froyo.rc /init.rc /recovery.rc
-	mount -t $MMC_FS -o nodiratime,nosuid,nodev,rw$MMC_MNT /dev/block/mmcblk0p2 /sdext
 fi
 
 # modify mount options to inject in android inits
 STL6_MNT=`echo ${STL6_MNT} | sed 's/\,/ /g'`
 STL7_MNT=`echo ${STL7_MNT} | sed 's/\,/ /g'`
 STL8_MNT=`echo ${STL8_MNT} | sed 's/\,/ /g'`
-MMC_MNT=`echo ${MMC_MNT} | sed 's/\,/ /g'`
 
 # END OF DATA2SD CODE
 
@@ -539,31 +530,34 @@ fi
 # Hybrid Data2SD Enabler
 if test -f /data2sd.dirs; then
 	echo "Connecting Hybrid Data2SD Links" >> /data2sd.log
-	cat /data2sd.dirs | while read line
+	for line in $(grep 'app\|dalvik-cache\|data\|log' /data2sd.dirs)
 	do
 		DATA2SDtemp="$line"
 
-		cp -prf /intdata/$DATA2SDtemp /sdext/
+		# We copy /data content the first time Hybrid Data2SD start
+		cp -prf /data/$DATA2SDtemp /sdext/
 		mkdir /sdext/$DATA2SDtemp
-		mkdir /intdata/$DATA2SDtemp
-		rm -r /intdata/$DATA2SDtemp
-		ln -s /sdext/$DATA2SDtemp /intdata/$DATA2SDtemp
+
+		# Remove an existing folder and symlink it with sdext
+		rm -rf /data/$DATA2SDtemp
+		ln -s /sdext/$DATA2SDtemp /data/$DATA2SDtemp
 		echo "- /data/$DATA2SDtemp linked to /sdext/$DATA2SDtemp" >> /data2sd.log
+
 		if [ "$line" == "dalvik-cache" ]; then
 			if test -f $G3DIR/hybrid.intsys; then
 				echo "Internalising dalvik-cache" >> /data2sd.log
-				mkdir /intdata/dalvik-syscache
+				mkdir /data/dalvik-syscache
 				cd /data/dalvik-cache/
 				for x in system@*; do
 					if [ -L $x ]; then
 						echo "- /data/dalvik-cache/$x already internal" >> /data2sd.log
 					else
-						mv $x /intdata/dalvik-syscache/
+						mv $x /data/dalvik-syscache/
 						rm $x
-						ln -s /intdata/dalvik-syscache/$x $x
-						chmod 777 /intdata/dalvik-syscache/$x
+						ln -s /data/dalvik-syscache/$x $x
+						chmod 777 /data/dalvik-syscache/$x
 						chmod 777 $x
-						echo "- /data/dalvik-cache/$x internalised to /intdata/dalvik-syscache/$x" >> /data2sd.log
+						echo "- /data/dalvik-cache/$x internalised to /data/dalvik-syscache/$x" >> /data2sd.log
 					fi
 				done
 				cd /
@@ -571,8 +565,6 @@ if test -f /data2sd.dirs; then
 		fi
 	done
 	chmod 771 /sdext
-
-
 else
 	echo "No Data2SD config file found (/system/etc/data2sd.dirs or /sdcard/Android/data/g3mod/data2sd.dirs)" >> /data2sd.log
 fi
@@ -594,9 +586,11 @@ if [ $bootmode = "2" ]; then
 	sed -i "s|CACHE_FS|$STL8_FS|" /misc/recovery.fstab
 	sed -i "s|SDEXT_FS|$MMC_FS|" /misc/recovery.fstab
 
-	mv /init_froyo.rc /init.rc
+	# Not used. Just in case the init binary can't handle recovery.rc
+	mv /init_ging.rc /init.rc
+
 	INITbin=init_ging
-	echo "System booted with Froyo recovery mode" >> /g3mod.log
+	echo "System booted with Gingerbread recovery mode" >> /g3mod.log
 
 elif [ "$version" == "2.3" ]; then
 	mv /init_ging.rc /init.rc
