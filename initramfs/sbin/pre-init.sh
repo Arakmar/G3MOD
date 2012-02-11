@@ -160,7 +160,7 @@ get_filesystems() {
     export EXTERNAL_STORAGE=/mnt/sdcard
     export ASEC_MOUNTPOINT=/mnt/asec
     export LOOP_MOUNTPOINT=/mnt/obb
-    export SD_EXT_DIRECTORY=/sdext
+    export SD_EXT_DIRECTORY=/sd-ext
     export BOOTCLASSPATH=/system/framework/core.jar:/system/framework/bouncycastle.jar:/system/framework/ext.jar:/system/framework/framework.jar:/system/framework/android.policy.jar:/system/framework/services.jar:/system/framework/core-junit.jar
 
 busybox insmod -f /lib/modules/fsr.ko
@@ -223,7 +223,7 @@ chgrp cache /cache
 mkdir /g3mod_sd
 mount -t vfat -o utf8 /dev/block/mmcblk0p1 /g3mod_sd
 
-mkdir /sdext
+mkdir /sd-ext
 
 # Check if conf directory exists, if not create one
 if ! test -d $G3DIR
@@ -417,8 +417,10 @@ mount -t $STL7_FS -o nodiratime,nosuid,nodev,rw$STL7_MNT /dev/block/stl7 /data
 
 if test -f $G3DIR/fs.data2sd; then
 	DATA2SDmode=`cat $G3DIR/fs.data2sd`
-	mkdir /sdext
-	mount -t $MMC_FS -o rw,$MMC_MNT /dev/block/mmcblk0p2 /sdext
+	mkdir /sd-ext
+	mount -t $MMC_FS -o rw,$MMC_MNT /dev/block/mmcblk0p2 /sd-ext
+
+
 	if [ "$DATA2SDmode" = "hybrid" ]
 	then
 		echo "Data2SD Enabled - Hybrid Mode" >> /data2sd.log	
@@ -429,7 +431,7 @@ if test -f $G3DIR/fs.data2sd; then
 		echo "Data2SD Enabled - Standard Mode" >> /data2sd.log	
 		echo "Data2SD Enabled - Standard Mode" >> /g3mod.log
 		umount /data
-		mount -t $MMC_FS -o nodiratime,nosuid,nodev,rw$MMC_MNT /dev/block/mmcblk0p2 /sdext
+		mount -t $MMC_FS -o nodiratime,nosuid,nodev,rw$MMC_MNT /dev/block/mmcblk0p2 /sd-ext
 	fi
 	sed -i "s|g3_mount_stl7|# Line not needed for Data2SD|" /init_ics.rc /init_ging.rc /init_froyo.rc /init.rc /recovery.rc
 else
@@ -447,10 +449,10 @@ STL8_MNT=`echo ${STL8_MNT} | sed 's/\,/ /g'`
 # Multi Data Code
 if test -f $G3DIR/multiosdata; then
 	MultiOS=`grep "ro.build.id" /system/build.prop|awk '{FS="="};{print $2}'`
-	if test -f /sdext/lastos; then
-		LastOS=`cat /sdext/lastos`
+	if test -f /sd-ext/lastos; then
+		LastOS=`cat /sd-ext/lastos`
 	fi
-	mkdir /sdext/multios
+	mkdir /sd-ext/multios
 	echo "Multi-OS Data Enabled: $MultiOS" >> /g3mod.log
 
 	if test -f $G3DIR/multiosdata.comp; then	
@@ -490,40 +492,40 @@ if [ "$MultiOS" != "" ]; then
 
 	if [ "$MultiOS" != "$LastOS" ]; then
 		echo "System has changed! Multi-OS Data changing too..." >> /multidata.log
-		rm /sdext/multios/$LastOS.data.tar
-		rm /sdext/multios/$LastOS.dalvikcache.tar
-		rm /sdext/multios/$LastOS.android_secure.tar
+		rm /sd-ext/multios/$LastOS.data.tar
+		rm /sd-ext/multios/$LastOS.dalvikcache.tar
+		rm /sd-ext/multios/$LastOS.android_secure.tar
 
 		if test -f $G3DIR/multiosdata.cache; then
 			echo "Backing up dalvik-cache ($MultiOSCompression)" >> /multidata.log
-			tar cvf$MultiOSCompression /sdext/multios/$LastOS.dalvikcache.tar /data/dalvik-cache 2>>/multidata.log
+			tar cvf$MultiOSCompression /sd-ext/multios/$LastOS.dalvikcache.tar /data/dalvik-cache 2>>/multidata.log
 		fi
 		rm -r /data/dalvik-cache/*
 
 		echo "Backing up old data ($MultiOSCompression)" >> /multidata.log
-		tar cvf$MultiOSCompression /sdext/multios/$LastOS.data.tar /data 2>>/multidata.log 
+		tar cvf$MultiOSCompression /sd-ext/multios/$LastOS.data.tar /data 2>>/multidata.log 
 		rm -r /data/*
 
 		if test -d /g3mod_sd/.android_secure; then
 			echo "Backing up old android_secure ($MultiOSCompression)" >> /multidata.log
-			tar cvf$MultiOSCompression /sdext/multios/$LastOS.android_secure.tar /g3mod_sd/.android_secure 2>>/multidata.log 
+			tar cvf$MultiOSCompression /sd-ext/multios/$LastOS.android_secure.tar /g3mod_sd/.android_secure 2>>/multidata.log 
 		fi
 		rm -r /g3mod_sd/.android_secure/*
 		
 		echo "Extracting new data ($MultiOSCompression)" >> /multidata.log
-		tar xvf$MultiOSCompression /sdext/multios/$MultiOS.data.tar 2>>/multidata.log
+		tar xvf$MultiOSCompression /sd-ext/multios/$MultiOS.data.tar 2>>/multidata.log
 		if test -f $G3DIR/multiosdata.cache; then
 			echo "Extracting new dalvik-cache ($MultiOSCompression)" >> /multidata.log
-			tar xvf$MultiOSCompression /sdext/multios/$MultiOS.dalvikcache.tar 2>>/multidata.log
+			tar xvf$MultiOSCompression /sd-ext/multios/$MultiOS.dalvikcache.tar 2>>/multidata.log
 		fi
-		if test -f /sdext/multios/$MultiOS.android_secure.tar; then
+		if test -f /sd-ext/multios/$MultiOS.android_secure.tar; then
 			echo "Extracting new android_secure ($MultiOSCompression)" >> /multidata.log
-			tar xvf$MultiOSCompression /sdext/multios/$MultiOS.android_secure.tar 2>>/multidata.log 
+			tar xvf$MultiOSCompression /sd-ext/multios/$MultiOS.android_secure.tar 2>>/multidata.log 
 		fi
 		echo "Data switched from $LastOS to $MultiOS" >> /multidata.log
 	fi		
 
-	echo $MultiOS > /sdext/lastos
+	echo $MultiOS > /sd-ext/lastos
 fi
 # End of Multi Data
 
@@ -535,13 +537,13 @@ if test -f /data2sd.dirs; then
 		DATA2SDtemp="$line"
 
 		# We copy /data content the first time Hybrid Data2SD start
-		cp -prf /data/$DATA2SDtemp /sdext/
-		mkdir /sdext/$DATA2SDtemp
+		cp -prf /data/$DATA2SDtemp /sd-ext/
+		mkdir /sd-ext/$DATA2SDtemp
 
-		# Remove an existing folder and symlink it with sdext
+		# Remove an existing folder and symlink it with sd-ext
 		rm -rf /data/$DATA2SDtemp
-		ln -s /sdext/$DATA2SDtemp /data/$DATA2SDtemp
-		echo "- /data/$DATA2SDtemp linked to /sdext/$DATA2SDtemp" >> /data2sd.log
+		ln -s /sd-ext/$DATA2SDtemp /data/$DATA2SDtemp
+		echo "- /data/$DATA2SDtemp linked to /sd-ext/$DATA2SDtemp" >> /data2sd.log
 
 		if [ "$line" == "dalvik-cache" ]; then
 			if test -f $G3DIR/hybrid.intsys; then
@@ -564,7 +566,7 @@ if test -f /data2sd.dirs; then
 			fi
 		fi
 	done
-	chmod 771 /sdext
+	chmod 771 /sd-ext
 else
 	echo "No Data2SD config file found (/system/etc/data2sd.dirs or /sdcard/Android/data/g3mod/data2sd.dirs)" >> /data2sd.log
 fi
@@ -629,6 +631,7 @@ else
 		sed -i "s|g3_wifi_data_07|# Line not needed for Samsung|" /init.rc
 		sed -i "s|g3_wifi_service|service wpa_supplicant /system/bin/wpa_supplicant -Dwext -ieth0 -c/data/wifi/bcm_supp.conf|" /init.rc
 		sed -i "s|g3_vibrator_module|vibrator-sam|" /init.rc
+		sed -i "s|Si4709_driver.ko|Si4709_driver_sam.ko|" /init.rc
 		echo "System booted with Samsung Froyo kernel mode" >> /g3mod.log
 	fi
 fi
@@ -668,8 +671,8 @@ sed -i "s|g3_mount_stl6|mount ${STL6_FS} /dev/block/stl6 /system nodev noatime n
 sed -i "s|g3_mount_stl8|mount ${STL8_FS} /dev/block/stl8 /cache sync noexec noatime nodiratime nosuid nodev rw ${STL8_MNT}|" /init.rc /recovery.rc
 
 if ! test -f $G3DIR/fs.data2sd; then
-	umount /sdext
-	rmdir /sdext
+	umount /sd-ext
+	rmdir /sd-ext
 fi
 
 umount /g3mod_sd
