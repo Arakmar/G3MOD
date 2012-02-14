@@ -206,6 +206,17 @@ chown dhcp dhcp /data/misc/dhcp
 chmod 0777 /data/misc/dhcp
 # End WiFi
 
+mkdir /data/system 0775 system system
+
+
+# WiFi
+mkdir /system/etc/wifi 0777 wifi wifi
+chmod 0777 /system/etc/wifi
+chmod 0666 /system/etc/wifi/wpa_supplicant.conf
+mkdir /data/misc/wifi 0770 wifi wifi
+chmod 0660 /data/misc/wifi/wpa_supplicant.conf
+chown wifi wifi /data/misc/wifi/wpa_supplicant.conf
+
 
 # create basic filesystem structure
     mkdir /data/misc 01771 system misc
@@ -508,6 +519,10 @@ service media /system/bin/mediaserver
     user media
     group audio camera inet net_bt net_bt_admin net_bw_acct drmrpc
     ioprio rt 4
+
+service playlogo /sbin/post-init.sh
+    user root
+    oneshot
 
 service bootanim /system/bin/bootanimation
     class main
