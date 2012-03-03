@@ -107,8 +107,7 @@ uint32_t d_mask;
 static int s3c_g3d_irq;
 static struct clk *g3d_clock;
 static struct g3d_context *d_hw_owner;
-
-static struct g3d_drvdata *staticdata;
+static struct platform_device *pdev;
 
 #ifdef USE_G3D_DOMAIN_GATING
 	static struct hrtimer d_timer; // idle timer
@@ -118,12 +117,12 @@ static struct g3d_drvdata *staticdata;
 /*
  * Register accessors
  */
-static inline void g3d_write(struct g3d_drvdata *d, uint32_t b, uint32_t r)
+static inline void g3d_write(uint32_t b, uint32_t r)
 {
 	writel(b, base_addr + r);
 }
 
-static inline uint32_t g3d_read(struct g3d_drvdata *d, uint32_t r)
+static inline uint32_t g3d_read(uint32_t r)
 {
 	return readl(base_addr + r);
 }
@@ -131,20 +130,20 @@ static inline uint32_t g3d_read(struct g3d_drvdata *d, uint32_t r)
 /*
  * Hardware operations
  */
-static inline void g3d_soft_reset(struct g3d_drvdata *data)
+static inline void g3d_soft_reset(void)
 {
 	//printk("g3d_soft_reset debut\n");
-	g3d_write(data, 1, G3D_FGGB_RESET_REG);
+	g3d_write(1, G3D_FGGB_RESET_REG);
 	udelay(1);
-	g3d_write(data, 0, G3D_FGGB_RESET_REG);
+	g3d_write(0, G3D_FGGB_RESET_REG);
 	//printk("g3d_soft_reset fin\n");
 }
 
-static inline int g3d_flush_pipeline(struct g3d_drvdata *data, unsigned int mask)
+static inline int g3d_flush_pipeline(unsigned int mask)
 {
 	int ret = 0;
 	//printk("g3d_flush_pipeline debut\n");
-	if((g3d_read(data, G3D_FGGB_PIPESTAT_REG) & mask) == 0)
+	if((g3d_read(G3D_FGGB_PIPESTAT_REG) & mask) == 0)
 	{
 		//printk("g3d_flush_pipeline fin1\n");
 		return 0;
@@ -153,54 +152,54 @@ static inline int g3d_flush_pipeline(struct g3d_drvdata *data, unsigned int mask
 	/* Setup the interrupt */
 	d_mask = mask;
 	init_completion(&d_completion);
-	g3d_write(data, 0, G3D_FGGB_PIPEMASK_REG);
-	g3d_write(data, 0, G3D_FGGB_PIPETGTSTATE_REG);
-	g3d_write(data, mask, G3D_FGGB_PIPEMASK_REG);
-	g3d_write(data, 1, G3D_FGGB_INTMASK_REG);
+	g3d_write(0, G3D_FGGB_PIPEMASK_REG);
+	g3d_write(0, G3D_FGGB_PIPETGTSTATE_REG);
+	g3d_write(mask, G3D_FGGB_PIPEMASK_REG);
+	g3d_write(1, G3D_FGGB_INTMASK_REG);
 
 	/* Check if the condition isn't already met */
-	if((g3d_read(data, G3D_FGGB_PIPESTAT_REG) & mask) == 0) {
+	if((g3d_read(G3D_FGGB_PIPESTAT_REG) & mask) == 0) {
 		/* Disable the interrupt */
-		g3d_write(data, 0, G3D_FGGB_INTMASK_REG);
+		g3d_write(0, G3D_FGGB_INTMASK_REG);
 		//printk("g3d_flush_pipeline fin2\n");
 		return 0;
 	}
 
 	if(!wait_for_completion_interruptible_timeout(&d_completion,
 								G3D_TIMEOUT)) {
-		dev_err(data->dev, "timeout while waiting for interrupt, resetting (stat=%08x)\n",
-					g3d_read(data, G3D_FGGB_PIPESTAT_REG));
-		g3d_soft_reset(data);
+		/*dev_err(data->dev, "timeout while waiting for interrupt, resetting (stat=%08x)\n",
+					g3d_read(data, G3D_FGGB_PIPESTAT_REG));*/
+		g3d_soft_reset();
 		ret = -EFAULT;
 	}
 
 	/* Disable the interrupt */
-	g3d_write(data, 0, G3D_FGGB_INTMASK_REG);
+	g3d_write(0, G3D_FGGB_INTMASK_REG);
 	//printk("g3d_flush_pipeline fin3 ret : %d\n", ret);
 	return ret;
 }
 
-static inline void g3d_flush_caches(struct g3d_drvdata *data)
+static inline void g3d_flush_caches(void)
 {
 	int timeout = 1000000000;
 	//printk("g3d_flush_caches debut\n");
-	g3d_write(data, G3D_FGGB_FLUSH_MSK, G3D_FGGB_CACHECTL_REG);
+	g3d_write(G3D_FGGB_FLUSH_MSK, G3D_FGGB_CACHECTL_REG);
 
 	do {
-		if(!g3d_read(data, G3D_FGGB_CACHECTL_REG))
+		if(!g3d_read(G3D_FGGB_CACHECTL_REG))
 			break;
 	} while (--timeout);
 	//printk("g3d_flush_caches fin\n");
 }
 
-static inline void g3d_invalidate_caches(struct g3d_drvdata *data)
+static inline void g3d_invalidate_caches(void)
 {
 	int timeout = 1000000000;
 	//printk("g3d_invalidate_caches debut\n");
-	g3d_write(data, G3D_FGGB_INVAL_MSK, G3D_FGGB_CACHECTL_REG);
+	g3d_write(G3D_FGGB_INVAL_MSK, G3D_FGGB_CACHECTL_REG);
 
 	do {
-		if(!g3d_read(data, G3D_FGGB_CACHECTL_REG))
+		if(!g3d_read(G3D_FGGB_CACHECTL_REG))
 			break;
 	} while (--timeout);
 	//printk("g3d_invalidate_caches fin\n");
@@ -214,8 +213,8 @@ static irqreturn_t g3d_handle_irq(int irq, void *dev_id)
 	struct g3d_drvdata *data = (struct g3d_drvdata *)dev_id;
 	uint32_t stat;
 	//printk("g3d_handle_irq debut\n");
-	g3d_write(data, 0, G3D_FGGB_INTPENDING_REG);
-	stat = g3d_read(data, G3D_FGGB_PIPESTAT_REG) & d_mask;
+	g3d_write(0, G3D_FGGB_INTPENDING_REG);
+	stat = g3d_read(G3D_FGGB_PIPESTAT_REG) & d_mask;
 
 	if(!stat)
 		complete(&d_completion);
@@ -234,18 +233,18 @@ static inline int ctx_has_lock(struct g3d_context *ctx)
 	Power management
 */
 
-static inline int g3d_do_power_up(struct g3d_drvdata *data)
+static inline int g3d_do_power_up(void)
 {
 #ifdef S5P6442_POWER_GATING_G3D
 	s5p6442_pwrgate_config(S5P6442_G3D_ID, S5P6442_ACTIVE_MODE);
 #endif
 	clk_enable(g3d_clock);
-	g3d_soft_reset(data);
+	g3d_soft_reset();
 
 	return 1;
 }
 
-static inline void g3d_do_power_down(struct g3d_drvdata *data)
+static inline void g3d_do_power_down(void)
 {
 	clk_disable(g3d_clock);
 #ifdef S5P6442_POWER_GATING_G3D
@@ -255,31 +254,31 @@ static inline void g3d_do_power_down(struct g3d_drvdata *data)
 
 #ifdef USE_G3D_DOMAIN_GATING
 /* Called with mutex locked */
-static inline int g3d_power_up(struct g3d_drvdata *data)
+static inline int g3d_power_up(void)
 {
 	int ret;
 
 	if (d_state)
 		return 0;
 
-	dev_info(data->dev, "Requesting power up.\n");
-	if((ret = g3d_do_power_up(data)) > 0)
+	printk("Requesting power up.\n");
+	if((ret = g3d_do_power_up()) > 0)
 		d_state = 1;
 
 	return ret;
 }
 
 /* Called with mutex locked */
-static inline void g3d_power_down(struct g3d_drvdata *data)
+static inline void g3d_power_down(void)
 {
 	if(!d_state)
 		return;
 
-	dev_info(data->dev, "Requesting power down.\n");
+	printk("Requesting power down.\n");
 
-	g3d_flush_pipeline(data, G3D_FGGB_PIPESTAT_MSK);
-	g3d_flush_caches(data);
-	g3d_do_power_down(data);
+	g3d_flush_pipeline(G3D_FGGB_PIPESTAT_MSK);
+	g3d_flush_caches();
+	g3d_do_power_down();
 	d_state = 0;
 }
 
@@ -288,7 +287,7 @@ static enum hrtimer_restart g3d_idle_func(struct hrtimer *t)
 {
 	//struct g3d_drvdata *data = container_of(t, struct g3d_drvdata, timer);
 
-	g3d_power_down(staticdata);
+	g3d_power_down();
 
 	return HRTIMER_NORESTART;
 }
@@ -336,7 +335,7 @@ static int s3c_g3d_lock(struct g3d_context *ctx)
 
 #ifdef USE_G3D_DOMAIN_GATING
 	if(!hrtimer_cancel(&d_timer)) {
-		ret = g3d_power_up(data);
+		ret = g3d_power_up();
 		if (ret < 0) {
 			dev_err(data->dev, "Timeout while waiting for G3D power up\n");
 			mutex_unlock(&d_hw_lock);
@@ -354,7 +353,7 @@ static int s3c_g3d_lock(struct g3d_context *ctx)
 	ret = 1;
 
 	if (d_hw_owner) {
-		g3d_flush_pipeline(data, G3D_FGGB_PIPESTAT_MSK);
+		g3d_flush_pipeline(G3D_FGGB_PIPESTAT_MSK);
 		ret = 2;
 	}
 
@@ -379,7 +378,7 @@ static int s3c_g3d_flush(struct g3d_context *ctx, u32 mask)
 		goto exit;
 	}
 
-	ret = g3d_flush_pipeline(data, mask & G3D_FGGB_PIPESTAT_MSK);
+	ret = g3d_flush_pipeline(mask & G3D_FGGB_PIPESTAT_MSK);
 
 exit:
 	mutex_unlock(&d_lock);
@@ -575,6 +574,7 @@ static int __init s3c_g3d_probe(struct platform_device *pdev)
 	}
 
 	data->dev = &pdev->dev;
+	d_dev = &pdev->dev;
 	d_hw_owner = NULL;
 	mutex_init(&d_lock);
 	mutex_init(&d_hw_lock);
@@ -588,13 +588,13 @@ static int __init s3c_g3d_probe(struct platform_device *pdev)
 	d_timer.function = g3d_idle_func;
 	d_state = 1;
 #endif
-	if(g3d_do_power_up(data) < 0) {
+	if(g3d_do_power_up() < 0) {
 		dev_err(&pdev->dev, "G3D power up failed\n");
 		ret = -EFAULT;
 		goto err_pm;
 	}
 
-	version = g3d_read(data, G3D_FGGB_VERSION);
+	version = g3d_read(G3D_FGGB_VERSION);
 	dev_info(&pdev->dev, "detected FIMG-3DSE version %d.%d.%d\n",
 		version >> 24, (version >> 16) & 0xff, (version >> 8) & 0xff);
 	
@@ -608,17 +608,17 @@ static int __init s3c_g3d_probe(struct platform_device *pdev)
 		goto err_misc_register;
 	}
 	
-	g3d_soft_reset(data); 
+	g3d_soft_reset(); 
 
 	//printk("data->mem->start : %x taille : %x\n", ctx->data->mem->start, resource_size(ctx->data->mem));
 	return 0;
 
 err_misc_register:
 #ifndef USE_G3D_DOMAIN_GATING
-	g3d_do_power_down(data);
+	g3d_do_power_down();
 #else
 	if(!hrtimer_cancel(&d_timer))
-		g3d_power_down(data);
+		g3d_power_down();
 #endif
 	free_irq(s3c_g3d_irq, pdev);
 err_pm:
@@ -641,11 +641,11 @@ static int __devexit s3c_g3d_remove(struct platform_device *pdev)
 	
 #ifdef USE_G3D_DOMAIN_GATING
 	if(!hrtimer_cancel(&d_timer))
-		g3d_power_down(data);
+		g3d_power_down();
 #else
-	g3d_flush_pipeline(data, G3D_FGGB_PIPESTAT_MSK);
-	g3d_flush_caches(data);
-	g3d_do_power_down(data);
+	g3d_flush_pipeline(G3D_FGGB_PIPESTAT_MSK);
+	g3d_flush_caches();
+	g3d_do_power_down();
 #endif
 
 	misc_deregister(&data->mdev);
@@ -664,11 +664,11 @@ static int s3c_g3d_runtime_suspend(struct device *dev)
 	
 #ifdef USE_G3D_DOMAIN_GATING
 	if(hrtimer_cancel(&d_timer))
-		g3d_power_down(data);
+		g3d_power_down();
 #else
-	g3d_flush_pipeline(data, G3D_FGGB_PIPESTAT_MSK);
-	g3d_flush_caches(data);
-	g3d_do_power_down(data);
+	g3d_flush_pipeline(G3D_FGGB_PIPESTAT_MSK);
+	g3d_flush_caches();
+	g3d_do_power_down();
 #endif
 	
 	d_hw_owner = NULL;
@@ -680,7 +680,7 @@ static int s3c_g3d_runtime_resume(struct device *dev)
 	struct g3d_drvdata *data = dev_get_drvdata(dev);
 
 #ifndef USE_G3D_DOMAIN_GATING
-	if(g3d_do_power_up(data) < 0) {
+	if(g3d_do_power_up() < 0) {
 		dev_err(dev, "G3D power up failed\n");
 		return -EFAULT;
 	}
@@ -695,11 +695,11 @@ static int s3c_g3d_suspend(struct device *dev)
 	
 #ifdef USE_G3D_DOMAIN_GATING
 	if(hrtimer_cancel(&d_timer))
-		g3d_power_down(data);
+		g3d_power_down();
 #else
-	g3d_flush_pipeline(data, G3D_FGGB_PIPESTAT_MSK);
-	g3d_flush_caches(data);
-	g3d_do_power_down(data);
+	g3d_flush_pipeline(G3D_FGGB_PIPESTAT_MSK);
+	g3d_flush_caches();
+	g3d_do_power_down();
 #endif
 	
 	if (mutex_is_locked(&d_hw_lock)) {
