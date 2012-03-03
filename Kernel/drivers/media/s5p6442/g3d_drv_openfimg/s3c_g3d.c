@@ -39,7 +39,7 @@
 #include <plat/s5p6442-dvfs.h>
 #include "s3c_g3d.h"
 
-#define DEBUG
+//#define DEBUG
 
 /*
  * Various definitions
@@ -153,8 +153,8 @@ static inline int g3d_flush_pipeline(struct g3d_drvdata *data, unsigned int mask
 
 	if(!wait_for_completion_interruptible_timeout(&d_completion,
 								G3D_TIMEOUT)) {
-		//dev_err(data->dev, "timeout while waiting for interrupt, resetting (stat=%08x)\n",
-				//	g3d_read(data, G3D_FGGB_PIPESTAT_REG));
+		dev_err(data->dev, "timeout while waiting for interrupt, resetting (stat=%08x)\n",
+					g3d_read(data, G3D_FGGB_PIPESTAT_REG));
 		g3d_soft_reset(data);
 		ret = -EFAULT;
 	}
@@ -226,13 +226,13 @@ static int s3c_g3d_unlock(struct g3d_context *ctx)
 	mutex_lock(&d_lock);
 
 	if (unlikely(!ctx_has_lock(ctx))) {
-		//dev_err(data->dev, "called S3C_G3D_UNLOCK without holding the hardware lock\n");
+		dev_err(data->dev, "called S3C_G3D_UNLOCK without holding the hardware lock\n");
 		ret = -EPERM;
 		goto exit;
 	}
 
 	mutex_unlock(&d_hw_lock);
-	//dev_dbg(data->dev, "hardware lock released by %p\n", ctx);
+	dev_dbg(data->dev, "hardware lock released by %p\n", ctx);
 	
 exit:
 	mutex_unlock(&d_lock);
@@ -247,12 +247,12 @@ static int s3c_g3d_lock(struct g3d_context *ctx)
 	//printk("s3c_g3d_lock debut\n");
 	mutex_lock(&d_hw_lock);
 
-	//dev_dbg(data->dev, "hardware lock acquired by %p\n", ctx);
+	dev_dbg(data->dev, "hardware lock acquired by %p\n", ctx);
 
 	mutex_lock(&d_lock);
 
 	if (unlikely(ret < 0)) {
-		//dev_err(data->dev, "runtime resume failed.\n");
+		dev_err(data->dev, "runtime resume failed.\n");
 		mutex_unlock(&d_hw_lock);
 		goto exit;
 	}
@@ -286,7 +286,7 @@ static int s3c_g3d_flush(struct g3d_context *ctx, u32 mask)
 	mutex_lock(&d_lock);
 
 	if (unlikely(!ctx_has_lock(ctx))) {
-		//dev_err(data->dev, "called S3C_G3D_FLUSH without holding the hardware lock\n");
+		dev_err(data->dev, "called S3C_G3D_FLUSH without holding the hardware lock\n");
 		ret = -EPERM;
 		goto exit;
 	}
@@ -339,7 +339,7 @@ static int s3c_g3d_open(struct inode *inode, struct file *file)
 
 	file->private_data = ctx;
 
-	//dev_dbg(data->dev, "device opened\n");
+	dev_dbg(data->dev, "device opened\n");
 	//printk("s3c_g3d_open fin\n");
 	return 0;
 }
@@ -362,7 +362,7 @@ static int s3c_g3d_release(struct inode *inode, struct file *file)
 		s3c_g3d_ioctl(file, S3C_G3D_UNLOCK, 0);
 
 	kfree(ctx);
-	//dev_dbg(data->dev, "device released\n");
+	dev_dbg(data->dev, "device released\n");
 	//printk("s3c_g3d_release fin\n");
 	return 0;
 }
@@ -394,7 +394,7 @@ int s3c_g3d_mmap(struct file* file, struct vm_area_struct *vma)
 		return -EINVAL;
 	}
 
-	//dev_dbg(data->dev, "hardware mapped by %p\n", ctx);
+	dev_dbg(data->dev, "hardware mapped by %p\n", ctx);
 	//printk("s3c_g3d_mmap fin\n");
 	return 0;
 }
