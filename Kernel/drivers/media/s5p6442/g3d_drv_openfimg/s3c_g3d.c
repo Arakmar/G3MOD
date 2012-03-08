@@ -638,7 +638,13 @@ static int s3c_g3d_remove(struct platform_device *pdev)
 
 static int s3c_g3d_suspend(struct platform_device *pdev, pm_message_t state)
 {
+	if (mutex_is_locked(&d_hw_lock)) {
+		dev_err(d_dev, "suspend requested with locked hardware (broken userspace?)\n");
+		return -EAGAIN;
+	}
+
 	dev_dbg(d_dev, "Suspending.\n");
+
 #ifdef USE_G3D_DOMAIN_GATING
 	if(hrtimer_cancel(&d_timer))
 		g3d_power_down();
@@ -648,11 +654,6 @@ static int s3c_g3d_suspend(struct platform_device *pdev, pm_message_t state)
 	g3d_do_power_down();
 #endif
 	
-	if (mutex_is_locked(&d_hw_lock)) {
-		dev_err(d_dev, "suspend requested with locked hardware (broken userspace?)\n");
-		return -EAGAIN;
-	}
-
 	d_hw_owner = NULL;
 	return 0;
 }
