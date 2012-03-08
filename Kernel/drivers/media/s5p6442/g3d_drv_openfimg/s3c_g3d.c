@@ -36,14 +36,11 @@
 #include <linux/sched.h>
 #include <linux/uaccess.h>
 #include <linux/workqueue.h>
-#include <linux/pm_runtime.h>
 #include <plat/power_clk_gating.h>
-#include <plat/s5p6442-dvfs.h>
 #include "s3c_g3d.h"
 
 #ifdef S5P6442_POWER_GATING_G3D
-	#include <plat/power_clk_gating.h>
-	#define USE_G3D_DOMAIN_GATING
+	//#define USE_G3D_DOMAIN_GATING
 #endif
 
 /*
@@ -616,7 +613,7 @@ err_clock:
 	return ret;
 }
 
-static int __devexit s3c_g3d_remove(struct platform_device *pdev)
+static int s3c_g3d_remove(struct platform_device *pdev)
 {
 	struct g3d_drvdata *data = platform_get_drvdata(pdev);
 	
@@ -639,36 +636,7 @@ static int __devexit s3c_g3d_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int s3c_g3d_runtime_suspend(struct device *dev)
-{
-	dev_dbg(d_dev, "Runtime suspending.\n");
-#ifdef USE_G3D_DOMAIN_GATING
-	if(hrtimer_cancel(&d_timer))
-		g3d_power_down();
-#else
-	g3d_flush_pipeline(G3D_FGGB_PIPESTAT_MSK);
-	g3d_flush_caches();
-	g3d_do_power_down();
-#endif
-	
-	d_hw_owner = NULL;
-	return 0;
-}
-
-static int s3c_g3d_runtime_resume(struct device *dev)
-{
-	dev_dbg(d_dev, "Runtime resuming.\n");
-#ifndef USE_G3D_DOMAIN_GATING
-	if(g3d_do_power_up() < 0) {
-		dev_err(dev, "G3D power up failed\n");
-		return -EFAULT;
-	}
-#endif
-
-	return 0;
-}
-
-static int s3c_g3d_suspend(struct device *dev)
+static int s3c_g3d_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	dev_dbg(d_dev, "Suspending.\n");
 #ifdef USE_G3D_DOMAIN_GATING
@@ -681,7 +649,7 @@ static int s3c_g3d_suspend(struct device *dev)
 #endif
 	
 	if (mutex_is_locked(&d_hw_lock)) {
-		dev_err(dev, "suspend requested with locked hardware (broken userspace?)\n");
+		dev_err(d_dev, "suspend requested with locked hardware (broken userspace?)\n");
 		return -EAGAIN;
 	}
 
@@ -689,12 +657,12 @@ static int s3c_g3d_suspend(struct device *dev)
 	return 0;
 }
 
-static int s3c_g3d_resume(struct device *dev)
+static int s3c_g3d_resume(struct platform_device *pdev)
 {	
 	dev_dbg(d_dev, "Resuming.\n");
 #ifndef USE_G3D_DOMAIN_GATING
 	if(g3d_do_power_up() < 0) {
-		dev_err(dev, "G3D power up failed\n");
+		dev_err(d_dev, "G3D power up failed\n");
 		return -EFAULT;
 	}
 #endif
@@ -702,19 +670,14 @@ static int s3c_g3d_resume(struct device *dev)
 	return 0;
 }
 
-static struct dev_pm_ops s3c_g3d_pm_ops = {
-	.suspend		= s3c_g3d_suspend,
-	.resume			= s3c_g3d_resume,
-	.runtime_suspend	= s3c_g3d_runtime_suspend,
-	.runtime_resume		= s3c_g3d_runtime_resume,
-};
-
 static struct platform_driver s3c_g3d_driver = {
-	.remove	= __devexit_p(s3c_g3d_remove),
+	.probe          = s3c_g3d_probe,
+	.remove	        = s3c_g3d_remove,
+	.suspend        = s3c_g3d_suspend,
+	.resume	        = s3c_g3d_resume,
 	.driver	= {
 		.owner	= THIS_MODULE,
 		.name	= "s3c-g3d",
-		.pm	= &s3c_g3d_pm_ops,
 	},
 };
 
