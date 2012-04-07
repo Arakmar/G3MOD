@@ -1342,7 +1342,7 @@ static struct s3c_platform_camera __initdata s5k4ca = {
 #endif
 	.type		= CAM_TYPE_ITU,
 	.fmt		= ITU_601_YCBCR422_8BIT,
-	.order422       = CAM_ORDER422_8BIT_CRYCBY,//NV21 support //rama
+	.order422       = CAM_ORDER422_8BIT_CBYCRY,//NV21 support //rama
 //	.order422	= CAM_ORDER422_8BIT_CRYCBY,
 	.i2c_busnum	= 0,
 	.info		= &s5k4ca_i2c_info,
