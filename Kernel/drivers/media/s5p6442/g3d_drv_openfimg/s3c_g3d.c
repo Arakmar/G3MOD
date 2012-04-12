@@ -210,6 +210,7 @@ static inline int ctx_has_lock(struct g3d_context *ctx)
 
 static inline int g3d_do_power_up(struct g3d_drvdata *data)
 {
+	dev_info(data->dev, "Power up !\n");
 #ifdef S5P6442_POWER_GATING_G3D
 	s5p6442_pwrgate_config(S5P6442_G3D_ID, S5P6442_ACTIVE_MODE);
 #endif
@@ -221,8 +222,9 @@ static inline int g3d_do_power_up(struct g3d_drvdata *data)
 
 static inline void g3d_do_power_down(struct g3d_drvdata *data)
 {
+	dev_info(data->dev, "Power down !\n");
 	clk_disable(data->clock);
-#ifdef CONFIG_S3C64XX_DOMAIN_GATING
+#ifdef S5P6442_POWER_GATING_G3D
 	s5p6442_pwrgate_config(S5P6442_G3D_ID, S5P6442_LP_MODE);
 #endif
 }
